@@ -202,6 +202,15 @@ describe('percySnapshot', () => {
     ]));
   });
 
+  it('attaches readiness diagnostics from the real browser', async () => {
+    const requestSpy = spyOn(percySnapshot, 'request').and.callThrough();
+
+    await percySnapshot('Readiness diagnostics');
+
+    const { domSnapshot } = requestSpy.calls.mostRecent().args[0];
+    expect(domSnapshot.readiness_diagnostics).toEqual(jasmine.any(Object));
+  });
+
   it('does not include corsIframes when page has no iframes', async () => {
     const requestSpy = spyOn(percySnapshot, 'request').and.callThrough();
 
@@ -357,17 +366,23 @@ describe('percySnapshot', () => {
     // a plain object with hand-rolled call recorders per spec so behaviour
     // is deterministic. The outer afterEach in `describe('percySnapshot')`
     // restores `browser = og`, so this swap is scoped to each spec.
-    function buildBrowser({ executeAsyncImpl, executeImpl } = {}) {
-      const executeAsyncCalls = [];
+    // The injected PercyDOM bundle also mentions `PercyDOM.waitForReady`, so
+    // match the guard that only the sdk-utils readiness script contains.
+    function isReadinessScript(script) {
+      return typeof script === 'string' && script.includes("typeof PercyDOM !== 'undefined'");
+    }
+
+    function buildBrowser({ readinessImpl, executeImpl } = {}) {
+      const readinessCalls = [];
       const executeCalls = [];
       browser = {
         call: (fn) => fn(),
-        executeAsync: (...args) => {
-          executeAsyncCalls.push(args);
-          return executeAsyncImpl ? executeAsyncImpl(...args) : Promise.resolve();
-        },
         execute: (...args) => {
           executeCalls.push(args);
+          if (isReadinessScript(args[0])) {
+            readinessCalls.push(args);
+            return readinessImpl ? readinessImpl(...args) : Promise.resolve();
+          }
           return executeImpl
             ? executeImpl(...args)
             : Promise.resolve({
@@ -376,54 +391,56 @@ describe('percySnapshot', () => {
             });
         }
       };
-      return { executeAsyncCalls, executeCalls };
+      return { readinessCalls, executeCalls };
     }
 
-    it('calls executeAsync with waitForReady before serialize', async () => {
-      const { executeAsyncCalls, executeCalls } = buildBrowser({
-        executeAsyncImpl: () => Promise.resolve({ ok: true })
+    it('calls execute with a promise-returning waitForReady script before serialize', async () => {
+      const { readinessCalls, executeCalls } = buildBrowser({
+        readinessImpl: () => Promise.resolve({ ok: true })
       });
 
       await percySnapshot('readiness-happy-path');
 
-      expect(executeAsyncCalls.length).toBe(1);
-      // sdk-utils.waitForReadyScript({ callback: true }) emits a STRING using
-      // `arguments[arguments.length - 1]` for the executeAsync done callback.
-      expect(typeof executeAsyncCalls[0][0]).toBe('string');
-      expect(executeAsyncCalls[0][0]).toContain('PercyDOM.waitForReady');
-      expect(executeAsyncCalls[0][0]).toContain('arguments[arguments.length - 1]');
-      // execute is called twice: once to inject PercyDOM, once to serialize.
-      expect(executeCalls.length).toBeGreaterThan(0);
+      expect(readinessCalls.length).toBe(1);
+      // No extra arguments: the readiness config is inlined into the script.
+      expect(readinessCalls[0].length).toBe(1);
+      // execute runs the string as a function body, so it needs an explicit
+      // return; the promise-mode script has no done callback.
+      expect(readinessCalls[0][0]).toMatch(/^return \(/);
+      expect(readinessCalls[0][0]).not.toContain('arguments[arguments.length - 1]');
+      const serializeIndex = executeCalls.findIndex((args) => typeof args[0] === 'function');
+      const readinessIndex = executeCalls.findIndex((args) => isReadinessScript(args[0]));
+      expect(readinessIndex).toBeLessThan(serializeIndex);
     });
 
     it('inlines per-snapshot readiness config as JSON into the script', async () => {
-      const { executeAsyncCalls } = buildBrowser({
-        executeAsyncImpl: () => Promise.resolve(null)
+      const { readinessCalls } = buildBrowser({
+        readinessImpl: () => Promise.resolve(null)
       });
       const readiness = { preset: 'strict', stabilityWindowMs: 500 };
 
       await percySnapshot('readiness-config', { readiness });
 
-      expect(executeAsyncCalls.length).toBe(1);
+      expect(readinessCalls.length).toBe(1);
       // sdk-utils inlines the config via JSON.stringify rather than passing
-      // it as a separate b.executeAsync argument.
-      expect(executeAsyncCalls[0][0]).toContain('"preset":"strict"');
-      expect(executeAsyncCalls[0][0]).toContain('"stabilityWindowMs":500');
+      // it as a separate b.execute argument.
+      expect(readinessCalls[0][0]).toContain('"preset":"strict"');
+      expect(readinessCalls[0][0]).toContain('"stabilityWindowMs":500');
     });
 
-    it('skips executeAsync when preset is disabled', async () => {
-      const { executeAsyncCalls } = buildBrowser();
+    it('skips the readiness script when preset is disabled', async () => {
+      const { readinessCalls } = buildBrowser();
 
       await percySnapshot('readiness-disabled', { readiness: { preset: 'disabled' } });
 
-      expect(executeAsyncCalls.length).toBe(0);
+      expect(readinessCalls.length).toBe(0);
     });
 
-    it('still serializes when executeAsync rejects', async () => {
+    it('still serializes when the readiness script rejects', async () => {
       // Factory function (not Promise.reject literal) so the rejection is
       // produced only when the SDK awaits — avoids an unhandled-rejection.
       buildBrowser({
-        executeAsyncImpl: () => Promise.reject(new Error('readiness boom'))
+        readinessImpl: () => Promise.reject(new Error('readiness boom'))
       });
 
       await percySnapshot('readiness-reject');
@@ -433,11 +450,11 @@ describe('percySnapshot', () => {
       ]));
     });
 
-    it('still serializes when executeAsync rejects with a non-Error', async () => {
+    it('still serializes when the readiness script rejects with a non-Error', async () => {
       // Covers the `err?.message || err` second branch: rejection value has
       // no `.message`, so logging falls through to stringifying err itself.
       buildBrowser({
-        executeAsyncImpl: () => Promise.reject('plain-string-rejection')
+        readinessImpl: () => Promise.reject('plain-string-rejection')
       });
 
       await percySnapshot('readiness-reject-string');

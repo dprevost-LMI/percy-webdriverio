@@ -353,16 +353,19 @@ module.exports = function percySnapshot(b, name, options) {
       await b.execute(percyDOMScript);
 
       // Readiness gate. All orchestration lives in @percy/sdk-utils
-      // (disabled-check + shallow-merge config + callback-mode script
-      // generation + try/catch). callback: true makes waitForReadyScript
-      // use arguments[arguments.length - 1] for the executeAsync done
-      // callback, which is robust across WebdriverIO Promise-handling
-      // variations. The package.json floor pins runReadinessGate to be
-      // present.
+      // (disabled-check + shallow-merge config + script generation +
+      // try/catch). WebdriverIO 10 removed the callback-style async
+      // execute command, so use the promise-mode script: one expression
+      // that evaluates to the waitForReady promise. execute runs a
+      // string as a function body,
+      // so it needs an explicit return; the parentheses keep the
+      // script's leading newline from ending the return statement.
+      // execute awaits the returned promise on WebdriverIO 8, 9 and 10.
+      // The package.json floor pins runReadinessGate to be present.
       const readinessDiagnostics = await utils.runReadinessGate(
-        (script) => b.executeAsync(script),
+        (script) => b.execute(`return (${script});`),
         options,
-        { callback: true, log }
+        { callback: false, log }
       );
 
       // Merge .percy.yml config options with snapshot options (snapshot options take priority)
