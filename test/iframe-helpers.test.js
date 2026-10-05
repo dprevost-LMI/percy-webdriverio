@@ -459,12 +459,12 @@ describe('captureSerializedDOM multi top-level iframes without switchToParentFra
 function makeFrameScope(url, html, extra = {}) {
   let calls = 0;
   return {
-    execute: jasmine.createSpy('execute').and.callFake(() => {
+    execute: () => {
       calls++;
       if (calls === 1) return Promise.resolve();
       if (calls === 2) return Promise.resolve(url);
       return Promise.resolve({ html });
-    }),
+    },
     $$: () => Promise.resolve([]),
     ...extra
   };
