@@ -58,6 +58,14 @@ From the second v10 audit. Not planned as tasks until the user decides.
 - **O3 – Remove `geckodriver`.** `wdio.conf.js` starts a geckodriver in `onPrepare` that WebdriverIO does not use (WebdriverIO starts its own driver since 8.14).
 - **O4 – Release 4.0.0.** Bump the version and write the release note (WebdriverIO 6 and 7 dropped, Node.js below 18 dropped).
 
+From the third v10 audit (2026-10-05):
+
+- **O5 – Dependabot group for WebdriverIO.** Dependabot updates `webdriverio` and each `@wdio/*` package in a separate PR. The v10 skill wants them in one change. A `groups` entry for `webdriverio` and `@wdio/*` keeps them together.
+- **O6 – Issue template.** `.github/ISSUE_TEMPLATE/bug_report.md` does not ask for the WebdriverIO version or the session protocol (BiDi or Classic). The SDK behavior now depends on both.
+- **O7 – `injectGlobals: false`.** `percySnapshot('name')` reads the global `browser`. Without globals it throws `ReferenceError: browser is not defined`, not the SDK message. Same on v8 and v9, so not a v10 change.
+
+Checked in the third audit, no action: the guide and the skill have not changed; no leftover message from the skill's Verify list and no deprecation warning for an SDK command in v10 BiDi or Classic runs (`--logLevel warn`); the release workflow installs no dependencies, so the v10 Node floor does not affect it; the v10 codemod (skill step 8) does not exist in `@wdio/codemod` 0.12.0 or its repository, and the repo has none of the three legacy forms it rewrites.
+
 ## Decisions (confirmed by the user on 2026-10-05)
 
 - **D1 – Peer range.** `peerDependencies.webdriverio` is `^8 || ^9 || ^10`. WebdriverIO 6 and 7 are removed. This is a breaking change: release it as `4.0.0`.
