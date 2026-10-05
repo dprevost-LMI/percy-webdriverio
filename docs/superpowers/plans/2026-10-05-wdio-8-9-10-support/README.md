@@ -55,7 +55,7 @@ From the second v10 audit. Not planned as tasks until the user decides.
 
 - **O1 – First CI run.** Nothing is pushed, so the Linux-only v10 behavior (display server start, the `firefox-nightly` CI step with v8 and v10) is not proved. Needs a push.
 - **O2 – ESLint 10.** ESLint 9 is end of life (2026-08-06). v10 needs ESLint 10 only for `eslint-plugin-wdio`, which this repo does not use.
-- **O3 – Remove `geckodriver`.** `wdio.conf.js` starts a geckodriver in `onPrepare` that WebdriverIO does not use (WebdriverIO starts its own driver since 8.14).
+- **O3 – Remove `geckodriver`.** Done: hooks and `geckodriver@3` removed; the session already used WebdriverIO's own driver. `wdio.conf.js` starts a geckodriver in `onPrepare` that WebdriverIO does not use (WebdriverIO starts its own driver since 8.14).
 - **O4 – Release 4.0.0.** Bump the version and write the release note (WebdriverIO 6 and 7 dropped, Node.js below 18 dropped).
 
 From the third v10 audit (2026-10-05):
