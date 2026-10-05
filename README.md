@@ -10,6 +10,18 @@
 ```sh-session
 $ npm install --save-dev @percy/cli @percy/webdriverio
 ```
+## Compatibility
+
+| `@percy/webdriverio` | WebdriverIO |
+|----------------------|-------------|
+| 4.x                  | 8, 9, 10    |
+| 3.x                  | 6, 7, 8, 9  |
+
+WebdriverIO sets the Node.js version you need. WebdriverIO 10 needs Node.js 22.19.0 or later.
+
+Cross-origin iframes are captured in WebDriver Classic sessions and in WebDriver BiDi sessions
+(the WebdriverIO 10 default for Chrome and Firefox).
+
 ## Usage
 
 This is an example using the `percySnapshot()` function in async mode.
@@ -87,7 +99,7 @@ const percySnapshot = require('@percy/webdriverio');
   await submitBtn.click();
 
   // the browser object is required in standalone mode
-  percySnapshot(browser, 'WebdriverIO at DuckDuckGo');
+  await percySnapshot(browser, 'WebdriverIO at DuckDuckGo');
 
   await browser.deleteSession();
 })().catch((e) => console.error(e));

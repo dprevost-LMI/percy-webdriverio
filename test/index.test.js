@@ -203,6 +203,20 @@ describe('percySnapshot', () => {
     ]));
   });
 
+  it('reports the installed webdriverio version as environmentInfo', async () => {
+    const requestSpy = spyOn(percySnapshot, 'request').and.callThrough();
+
+    await percySnapshot('Environment info');
+
+    const { environmentInfo } = requestSpy.calls.mostRecent().args[0];
+    expect(environmentInfo).toMatch(/^webdriverio\/\d+\.\d+\.\d+/);
+    // CI sets WDIO_MAJOR per matrix job, so a job that installed another
+    // major fails here instead of testing the wrong version.
+    if (process.env.WDIO_MAJOR) {
+      expect(environmentInfo).toMatch(new RegExp(`^webdriverio/${process.env.WDIO_MAJOR}\\.`));
+    }
+  });
+
   it('attaches readiness diagnostics from the real browser', async () => {
     const requestSpy = spyOn(percySnapshot, 'request').and.callThrough();
 
