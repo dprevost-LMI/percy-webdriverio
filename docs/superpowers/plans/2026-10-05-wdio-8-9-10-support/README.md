@@ -60,7 +60,7 @@ From the second v10 audit. Not planned as tasks until the user decides.
 
 From the third v10 audit (2026-10-05):
 
-- **O5 – Dependabot group for WebdriverIO.** Dependabot updates `webdriverio` and each `@wdio/*` package in a separate PR. The v10 skill wants them in one change. A `groups` entry for `webdriverio` and `@wdio/*` keeps them together.
+- **O5 – Dependabot group for WebdriverIO.** Done: `.github/dependabot.yml` group `webdriverio`. Dependabot updates `webdriverio` and each `@wdio/*` package in a separate PR. The v10 skill wants them in one change. A `groups` entry for `webdriverio` and `@wdio/*` keeps them together.
 - **O6 – Issue template.** `.github/ISSUE_TEMPLATE/bug_report.md` does not ask for the WebdriverIO version or the session protocol (BiDi or Classic). The SDK behavior now depends on both.
 - **O7 – `injectGlobals: false`.** `percySnapshot('name')` reads the global `browser`. Without globals it throws `ReferenceError: browser is not defined`, not the SDK message. Same on v8 and v9, so not a v10 change.
 
