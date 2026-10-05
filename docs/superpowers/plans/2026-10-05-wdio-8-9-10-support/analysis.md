@@ -45,7 +45,8 @@ Latest published versions on 2026-10-05: `webdriverio` 8.46.0, 9.32.0, 10.0.0. `
 | `browser.$$('iframe')` | array | array | `ElementArray` | `ElementArray` |
 | `element.getAttribute` | yes | yes | yes | yes |
 | `element.execute(fn)` with `this` = element | no (caught) | yes | yes | yes (verify, Review Focus 3) |
-| `browser.switchFrame(element \| null)` | yes (8.x late) | yes | yes | **throws** |
+| `browser.switchFrame(element \| null)` | **no** (added in v9; v8 has only the protocol command `switchToFrame`) | yes | yes | **throws** |
+| `browser.switchToFrame(element \| null)` | yes | yes | not public | not public |
 | `browser.switchToParentFrame` | yes | yes | yes | not usable with BiDi contexts |
 | `browser.browsingContexts()` | no | no | throws (not BiDi) | yes |
 | `BrowsingContext.frame(element)` / `.execute` / `.$$` | no | no | no | yes |

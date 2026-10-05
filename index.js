@@ -12,8 +12,9 @@ let webdriverioPkg = null;
 try {
   webdriverioPkg = require('webdriverio/package.json');
 } catch {
+  /* istanbul ignore next: only webdriverio 9+ hide package.json behind "exports" — the webdriverio 8 CI job never gets here, the 9 and 10 jobs do */
   try {
-    // this handles webdriverio 9
+    // this handles webdriverio 9 and 10
     const path = require('path');
     const webdriverioDir = path.dirname(require.resolve('webdriverio'));
 
@@ -116,6 +117,13 @@ function hasSwitchToParentFrame(b) {
   return present;
 }
 
+// WebdriverIO 9 added the switchFrame command. WebdriverIO 8 has only the
+// protocol command switchToFrame, which WebdriverIO 10 no longer exposes;
+// every version that lacks switchFrame still has switchToFrame.
+function switchSessionFrame(b, target) {
+  return typeof b.switchFrame === 'function' ? b.switchFrame(target) : b.switchToFrame(target);
+}
+
 // The leave step of the classic frame strategy. Switches up one frame in the
 // WebDriver context. WebdriverIO doesn't surface
 // switchToParentFrame on the high-level Browser object in every version. When
@@ -137,7 +145,7 @@ async function switchToParent(b, log, depth = 1) {
     }
   }
   try {
-    await b.switchFrame(null);
+    await switchSessionFrame(b, null);
   } catch (e) {
     log.debug(`Failed to switch back to top frame: ${e.message}`);
     return false;
@@ -158,7 +166,7 @@ async function switchToParent(b, log, depth = 1) {
 function classicFrameStrategy(b, log) {
   return {
     async enter(scope, iframeElement) {
-      await b.switchFrame(iframeElement);
+      await switchSessionFrame(b, iframeElement);
       return b;
     },
     leave: (depth) => switchToParent(b, log, depth)

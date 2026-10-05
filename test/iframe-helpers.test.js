@@ -3,6 +3,7 @@ const {
   switchToParent,
   processFrameTree,
   captureSerializedDOM,
+  classicFrameStrategy,
   contextFrameStrategy,
   createFrameStrategy
 } = require('../index.js');
@@ -578,5 +579,30 @@ describe('captureSerializedDOM in a wdio 10 BiDi session', () => {
     expect(domSnapshot.corsIframes[0].iframeData.percyElementId).toBe('mid');
     expect(root.frame).toHaveBeenCalledWith(iframeEl);
     expect(b.switchFrame.calls.count()).toBe(0);
+  });
+});
+
+describe('classic frame switching on wdio 8 (no switchFrame command)', () => {
+  const log = { debug: () => {} };
+
+  it('enters a frame with switchToFrame when switchFrame is missing', async () => {
+    const calls = [];
+    const b = { switchToFrame: (arg) => { calls.push(arg); return Promise.resolve(); } };
+    const iframeEl = { elementId: 'el-1' };
+
+    const scope = await classicFrameStrategy(b, log).enter(b, iframeEl);
+
+    expect(calls).toEqual([iframeEl]);
+    expect(scope).toBe(b);
+  });
+
+  it('returns to the top document with switchToFrame(null) when switchFrame is missing', async () => {
+    const calls = [];
+    const b = { switchToFrame: (arg) => { calls.push(arg); return Promise.resolve(); } };
+
+    const ok = await switchToParent(b, log, 1);
+
+    expect(calls).toEqual([null]);
+    expect(ok).toBe(true);
   });
 });
