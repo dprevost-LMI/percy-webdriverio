@@ -631,11 +631,14 @@ describe('percySnapshot with a held browsing context', () => {
     await helpers.setupTest();
   });
 
-  it('takes the snapshot when the first argument has no call command', async () => {
-    // A webdriverio 10 BrowsingContext has execute, $$ and frame, but no call.
+  it('runs a browsing context through the call command of its browser', async () => {
+    // A webdriverio 10 BrowsingContext has no call command; it is marked with
+    // the wdio.kind symbol and links to the browser that owns it.
     const requestSpy = spyOn(percySnapshot, 'request').and.callThrough();
+    const owner = { call: jasmine.createSpy('call').and.callFake((fn) => fn()) };
     const context = {
-      contextId: 'ctx-7',
+      [Symbol.for('wdio.kind')]: 'browsing-context',
+      browser: owner,
       isBidi: true,
       frame: () => Promise.reject(new Error('no frames expected')),
       $$: () => Promise.resolve([]),
@@ -646,8 +649,15 @@ describe('percySnapshot with a held browsing context', () => {
 
     await percySnapshot(context, 'Held context');
 
+    expect(owner.call).toHaveBeenCalledTimes(1);
     expect(requestSpy).toHaveBeenCalledTimes(1);
     expect(requestSpy.calls.mostRecent().args[0].url).toBe('http://localhost/tab');
+  });
+
+  it('throws at once when the first argument is not a browser or browsing context', () => {
+    // For example what newWindow() returns in a WebDriver Classic session.
+    expect(() => percySnapshot({ handle: 'window-1', type: 'tab' }, 'Not a browser'))
+      .toThrowError('The first argument must be a WebdriverIO browser or browsing context.');
   });
 });
 

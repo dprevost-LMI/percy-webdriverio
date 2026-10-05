@@ -156,6 +156,14 @@ async function switchToParent(b, log, depth = 1) {
   return depth === 1;
 }
 
+// WebdriverIO 10 marks its objects with this global symbol (getWdioKind in
+// @wdio/utils reads it). WebdriverIO 8 and 9 have neither the marker nor
+// browsing contexts.
+const WDIO_KIND = Symbol.for('wdio.kind');
+function isBrowsingContext(b) {
+  return b[WDIO_KIND] === 'browsing-context';
+}
+
 // A frame strategy moves the capture into a child frame and back:
 //   enter(scope, iframeElement) -> the scope to run execute/$$ on inside
 //                                  the frame
@@ -182,13 +190,13 @@ const contextFrameStrategy = {
 };
 
 // Pick the strategy by feature, not by version. A browsing context that the
-// user holds (WebdriverIO 10: the result of newWindow() or url() in BiDi) is
-// its own root. The Classic stand-in that url() returns also has frame(),
-// but no contextId. Only a WebdriverIO 10 BiDi session has
-// browsingContexts(); there the root scope is the context of the current
-// window, whose id equals the window handle.
+// user holds (WebdriverIO 10: for example the result of url() or, in BiDi,
+// newWindow()) is its own root. The Classic stand-in that url() returns has
+// the kind of its browser, so it keeps the classic strategy. Only a
+// WebdriverIO 10 BiDi session has browsingContexts(); there the root scope
+// is the context of the current window, whose id equals the window handle.
 async function createFrameStrategy(b, log) {
-  if (typeof b.contextId === 'string' && typeof b.frame === 'function') {
+  if (isBrowsingContext(b)) {
     return { strategy: contextFrameStrategy, root: b };
   }
   if (b.isBidi && typeof b.browsingContexts === 'function') {
@@ -397,11 +405,14 @@ module.exports = function percySnapshot(b, name, options) {
   if (!b) throw new Error('The WebdriverIO `browser` object is required.');
   if (!name) throw new Error('The `name` argument is required.');
 
-  // A WebdriverIO 10 browsing context has no call command; call only
-  // runs the function anyway.
-  const run = typeof b.call === 'function' ? (fn) => b.call(fn) : (fn) => fn();
+  // A WebdriverIO 10 browsing context has no call command: run through the
+  // browser that owns it. The capture itself still runs on `b`.
+  const owner = isBrowsingContext(b) ? b.browser : b;
+  if (typeof owner.call !== 'function') {
+    throw new Error('The first argument must be a WebdriverIO browser or browsing context.');
+  }
 
-  return run(async () => {
+  return owner.call(async () => {
     if (!(await module.exports.isPercyEnabled())) return;
     let log = utils.logger('webdriverio');
     if (utils.percy?.type === 'automate') {

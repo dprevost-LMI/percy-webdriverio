@@ -502,10 +502,17 @@ describe('createFrameStrategy', () => {
   });
 
   it('uses a held browsing context as the root (webdriverio 10 newWindow / url result)', async () => {
-    const held = { contextId: 'ctx-7', isBidi: true, frame: () => Promise.resolve({}) };
+    const held = { [Symbol.for('wdio.kind')]: 'browsing-context', isBidi: true, frame: () => Promise.resolve({}) };
     const { strategy, root } = await createFrameStrategy(held, log);
     expect(strategy).toBe(contextFrameStrategy);
     expect(root).toBe(held);
+  });
+
+  it('does not treat an object as a browsing context without the wdio.kind marker', async () => {
+    const lookalike = { contextId: 'ctx-7', isBidi: false, frame: () => Promise.resolve({}), switchFrame: () => Promise.resolve() };
+    const { strategy, root } = await createFrameStrategy(lookalike, log);
+    expect(strategy).not.toBe(contextFrameStrategy);
+    expect(root).toBe(lookalike);
   });
 
   it('keeps the classic strategy for the Classic stand-in that browser.url() returns', async () => {
