@@ -4,7 +4,7 @@
 
 **Goal:** `@percy/webdriverio` takes correct DOM and cross-origin iframe snapshots on WebdriverIO 8, 9 and 10, and CI proves it on each major.
 
-**Architecture:** Use one code path for all three majors. Use feature detection, not version detection. Replace `executeAsync` (removed in v10) with `execute` and the promise-mode readiness script. Put iframe navigation behind a small "frame strategy" seam: WebDriver Classic and v8/v9 use `switchFrame`; a v10 BiDi session uses `WebdriverIO.BrowsingContext.frame()`. Develop on v10. CI installs v8, v9 and v10 in a matrix.
+**Architecture:** Use one code path for all three majors. Use feature detection, not version detection. Replace `executeAsync` (removed in v10) with `execute` and the promise-mode readiness script. Put iframe navigation behind a small "frame strategy" seam: v9 and v10 Classic sessions use `switchFrame`; v8 has no `switchFrame`, so it uses the protocol command `switchToFrame`; a v10 BiDi session uses `WebdriverIO.BrowsingContext.frame()`. Develop on v10. CI installs v8, v9 and v10 in a matrix.
 
 **Tech Stack:** Node.js (CommonJS), WebdriverIO 8/9/10, `@wdio/jasmine-framework` (Jasmine 5 on v8/v9, Jasmine 6 on v10), `@percy/sdk-utils` ^1.32, `@percy/cli` ^1.32, geckodriver + headless Firefox, `tsd`, `nyc`, yarn v1, GitHub Actions.
 
@@ -36,7 +36,7 @@ Do the tasks in this order. Task 3 needs Task 2: its end-to-end tests fail on v1
 - `peerDependencies.webdriverio`: `^8 || ^9 || ^10` (see D1).
 - `engines.node`: `>=18` (see D2).
 - One runtime code path. No `if (major === 10)`. Detect features (`typeof b.browsingContexts === 'function'`, `b.isBidi`).
-- Do not call `executeAsync`, `switchToFrame`, `isW3C`, `element.ELEMENT`, `getHTML(boolean)`, `getCookies(string)` or `addCommand(..., true)` anywhere in `index.js`.
+- Do not call `executeAsync`, `isW3C`, `element.ELEMENT`, `getHTML(boolean)`, `getCookies(string)` or `addCommand(..., true)` anywhere in `index.js`. Call `switchToFrame` only when `switchFrame` is missing (WebdriverIO 8). v9 and v10 always have `switchFrame`, so v10, where `switchToFrame` is not public, never reaches that call.
 - Do not set `strictSelectors: false`. The SDK uses `$$` only.
 - Every new runtime file goes in `package.json` `files`. (Release 3.3.3 broke because `_iframe_shim.js` was not published.) This plan adds no new runtime file; keep it that way.
 - `nyc` coverage stays at 100 % for branches, lines, functions and statements (`.nycrc`).

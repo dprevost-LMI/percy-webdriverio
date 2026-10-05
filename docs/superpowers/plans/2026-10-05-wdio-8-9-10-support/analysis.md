@@ -21,7 +21,7 @@ Latest published versions on 2026-10-05: `webdriverio` 8.46.0, 9.32.0, 10.0.0. `
 |------------|--------------------|---------------------|------|
 | `executeAsync` removed | `index.js:362-366` (`runReadinessGate((script) => b.executeAsync(script), …, { callback: true })`) | `b.executeAsync` is not a function. `runReadinessGate` catches the error. The snapshot has no `readiness_diagnostics` and readiness never waits. **Silent.** | 1 |
 | `switchFrame` throws in a BiDi session; use `BrowsingContext.frame()` | `index.js:168` (`b.switchFrame(iframeElement)`), `index.js:140` (`b.switchFrame(null)`) | v10 Firefox and Chrome sessions are BiDi by default. Every cross-origin iframe capture throws and is caught. `corsIframes` is always missing. **Silent.** | 3 |
-| `switchToFrame` not public | not used | none | – |
+| `switchToFrame` not public | `index.js` `switchSessionFrame` calls it only when `switchFrame` is missing (WebdriverIO 8) | none: v9 and v10 have `switchFrame` | 4 |
 | Node.js `>=22.19.0` | `.nvmrc`, `.node-version`, workflows | `yarn` fails on engines | 2 |
 | Jasmine 6: sync matchers are sync again; unawaited failures now fail the spec | `test/*.test.js` | Specs with a hidden failure in v9 now fail. Fix the test or the code, not the `expect`. | 2 |
 | `jasmineNodeOpts`, `failFast`, `stopSpecOnExpectationFailure` | not used in `wdio.conf.js` | none | – |

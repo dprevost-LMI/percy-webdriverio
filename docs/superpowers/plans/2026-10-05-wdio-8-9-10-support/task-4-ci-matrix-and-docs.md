@@ -76,7 +76,7 @@ Expected: PASS on all three, with 100 % coverage. On v8, if a spec fails only be
 - [ ] **Step 6: Search for v10 leftovers in the whole repository**
 
 Run: `git grep -nE "executeAsync|switchToFrame|isW3C|\.ELEMENT\b|jasmineNodeOpts|multiremote|tagExpression|getHTML\((true|false)\)" -- ':!docs' ':!yarn.lock'`
-Expected: no output.
+Expected: only the WebdriverIO 8 fallback in `switchSessionFrame` (`index.js`) and its two unit specs in `test/iframe-helpers.test.js`.
 
 - [ ] **Step 7: Commit**
 
