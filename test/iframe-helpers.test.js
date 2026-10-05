@@ -501,6 +501,25 @@ describe('createFrameStrategy', () => {
     expect(root).toBe(c2);
   });
 
+  it('uses a held browsing context as the root (webdriverio 10 newWindow / url result)', async () => {
+    const held = { contextId: 'ctx-7', isBidi: true, frame: () => Promise.resolve({}) };
+    const { strategy, root } = await createFrameStrategy(held, log);
+    expect(strategy).toBe(contextFrameStrategy);
+    expect(root).toBe(held);
+  });
+
+  it('keeps the classic strategy for the Classic stand-in that browser.url() returns', async () => {
+    const standIn = {
+      contextId: undefined,
+      isBidi: false,
+      frame: () => Promise.reject(new Error('needs a WebDriver BiDi session')),
+      switchFrame: () => Promise.resolve()
+    };
+    const { strategy, root } = await createFrameStrategy(standIn, log);
+    expect(strategy).not.toBe(contextFrameStrategy);
+    expect(root).toBe(standIn);
+  });
+
   it('falls back to the first browsing context when no context matches the window handle', async () => {
     const c1 = { contextId: 'ctx-1' };
     const b = {

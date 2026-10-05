@@ -181,10 +181,16 @@ const contextFrameStrategy = {
   leave: async () => true
 };
 
-// Pick the strategy by feature, not by version: only a WebdriverIO 10 BiDi
-// session has browsingContexts(). The root scope is the context of the
-// current window; its id equals the window handle in BiDi.
+// Pick the strategy by feature, not by version. A browsing context that the
+// user holds (WebdriverIO 10: the result of newWindow() or url() in BiDi) is
+// its own root. The Classic stand-in that url() returns also has frame(),
+// but no contextId. Only a WebdriverIO 10 BiDi session has
+// browsingContexts(); there the root scope is the context of the current
+// window, whose id equals the window handle.
 async function createFrameStrategy(b, log) {
+  if (typeof b.contextId === 'string' && typeof b.frame === 'function') {
+    return { strategy: contextFrameStrategy, root: b };
+  }
   if (b.isBidi && typeof b.browsingContexts === 'function') {
     const handle = await b.getWindowHandle();
     const contexts = await b.browsingContexts();
@@ -391,7 +397,11 @@ module.exports = function percySnapshot(b, name, options) {
   if (!b) throw new Error('The WebdriverIO `browser` object is required.');
   if (!name) throw new Error('The `name` argument is required.');
 
-  return b.call(async () => {
+  // A WebdriverIO 10 browsing context has no call command; call only
+  // runs the function anyway.
+  const run = typeof b.call === 'function' ? (fn) => b.call(fn) : (fn) => fn();
+
+  return run(async () => {
     if (!(await module.exports.isPercyEnabled())) return;
     let log = utils.logger('webdriverio');
     if (utils.percy?.type === 'automate') {

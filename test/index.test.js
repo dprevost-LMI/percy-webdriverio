@@ -564,12 +564,56 @@ describe('cross-origin iframes in a real browser', () => {
     expect(corsIframes.map((frame) => frame.iframeData.percyElementId)).toEqual(['e2e-cors', 'e2e-leaf']);
   });
 
+  it('captures a tab held from newWindow, with its cross-origin iframes (webdriverio 10 BiDi)', async () => {
+    if (!browser.isBidi || typeof browser.browsingContexts !== 'function') {
+      pending('needs a webdriverio 10 BiDi session');
+      return;
+    }
+    const requestSpy = spyOn(percySnapshot, 'request').and.callThrough();
+    const tab = await browser.newWindow(`http://127.0.0.1:${port}/nested`, { type: 'tab' });
+    try {
+      await percySnapshot(tab, 'E2E held tab');
+    } finally {
+      await tab.closeWindow();
+    }
+
+    const { url, domSnapshot } = requestSpy.calls.mostRecent().args[0];
+    expect(url).toBe(`http://127.0.0.1:${port}/nested`);
+    expect(domSnapshot.html).toContain('cors nested');
+    expect(domSnapshot.corsIframes.map((frame) => frame.iframeData.percyElementId)).toEqual(['e2e-leaf']);
+  });
+
   it('leaves the session on the top document after the capture', async () => {
     await addIframe(`http://127.0.0.1:${port}/nested`, 'e2e-cors');
 
     await percySnapshot('E2E restore');
 
     expect(await browser.execute(() => document.URL)).toBe(helpers.testSnapshotURL);
+  });
+});
+
+describe('percySnapshot with a held browsing context', () => {
+  beforeEach(async () => {
+    await helpers.setupTest();
+  });
+
+  it('takes the snapshot when the first argument has no call command', async () => {
+    // A webdriverio 10 BrowsingContext has execute, $$ and frame, but no call.
+    const requestSpy = spyOn(percySnapshot, 'request').and.callThrough();
+    const context = {
+      contextId: 'ctx-7',
+      isBidi: true,
+      frame: () => Promise.reject(new Error('no frames expected')),
+      $$: () => Promise.resolve([]),
+      execute: (script) => Promise.resolve(typeof script === 'function'
+        ? { domSnapshot: { html: '<html>tab</html>', resources: [] }, url: 'http://localhost/tab' }
+        : undefined)
+    };
+
+    await percySnapshot(context, 'Held context');
+
+    expect(requestSpy).toHaveBeenCalledTimes(1);
+    expect(requestSpy.calls.mostRecent().args[0].url).toBe('http://localhost/tab');
   });
 });
 

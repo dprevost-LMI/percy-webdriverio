@@ -3,6 +3,7 @@ import { expectType, expectError } from 'tsd';
 import percySnapshot from '.';
 
 declare const browser: WebdriverIO.Browser;
+declare const context: WebdriverIO.BrowsingContext;
 
 expectError(percySnapshot());
 expectError(percySnapshot(browser));
@@ -14,3 +15,7 @@ expectType<Promise<void | { [key: string]: any }>>(percySnapshot(browser, 'Snaps
 
 expectError(percySnapshot('Snapshot name', { foo: 'bar' }));
 expectError(percySnapshot(browser, 'Snapshot name', { foo: 'bar' }));
+
+expectType<Promise<void | { [key: string]: any }>>(percySnapshot(context, 'Snapshot name'));
+expectType<Promise<void | { [key: string]: any }>>(percySnapshot(context, 'Snapshot name', { widths: [1000] }));
+expectError(percySnapshot(context));
