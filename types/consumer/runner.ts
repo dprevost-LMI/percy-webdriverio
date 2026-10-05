@@ -7,7 +7,10 @@ describe('percySnapshot in a testrunner project', () => {
     await percySnapshot('Snapshot name');
     await percySnapshot('Snapshot name', { widths: [1000] });
     await percySnapshot(browser, 'Snapshot name');
-    await percySnapshot(await browser.url('https://example.com'), 'Snapshot name');
+
+    // README: browsing context example
+    const page = await browser.url('https://example.com');
+    await percySnapshot(page, 'Example page');
 
     // @ts-expect-error unknown snapshot option
     await percySnapshot(browser, 'Snapshot name', { foo: 'bar' });

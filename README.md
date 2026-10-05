@@ -22,8 +22,16 @@ WebdriverIO sets the Node.js version you need. WebdriverIO 10 needs Node.js 22.1
 Cross-origin iframes are captured in WebDriver Classic sessions and in WebDriver BiDi sessions
 (the WebdriverIO 10 default for Chrome and Firefox).
 
-In a WebdriverIO 10 BiDi session, you can also give a browsing context, for example the result of
-`browser.newWindow()`, as the first argument: `await percySnapshot(tab, 'Second tab')`.
+With WebdriverIO 10, you can also give a browsing context as the first argument. The result of
+`browser.url()` works in BiDi and Classic sessions:
+
+```javascript
+const page = await browser.url('https://example.com');
+await percySnapshot(page, 'Example page');
+```
+
+In a BiDi session, `browser.newWindow()` also returns a browsing context. In a Classic session it
+switches the session to the new window, so give `browser`.
 
 ## Usage
 
