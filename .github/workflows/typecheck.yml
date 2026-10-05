@@ -38,3 +38,7 @@ jobs:
           "webdriverio@^$WDIO" "@wdio/cli@^$WDIO" "@wdio/local-runner@^$WDIO"
           "@wdio/jasmine-framework@^$WDIO" "@wdio/spec-reporter@^$WDIO"
       - run: yarn test:types
+      # Compiles the public types as a WebdriverIO 10 + TypeScript 6 user does.
+      - name: Type-check a TypeScript consumer project
+        if: ${{ matrix.wdio == 10 }}
+        run: yarn test:types:consumer
