@@ -41,7 +41,7 @@ function getOrigin(url) {
 }
 
 /* istanbul ignore next: ignoreSelectors default arg fires only when caller omits — caller always passes */
-async function getIframeMeta(iframeElement, ignoreSelectors = []) {
+async function getIframeMeta(scope, iframeElement, ignoreSelectors = []) {
   let src = (await iframeElement.getAttribute('src')) || '';
   let srcdoc = await iframeElement.getAttribute('srcdoc');
   let percyElementId = await iframeElement.getAttribute('data-percy-element-id');
@@ -49,22 +49,21 @@ async function getIframeMeta(iframeElement, ignoreSelectors = []) {
   let matchesIgnoreSelector = false;
   /* istanbul ignore if: ignoreSelectors length check — exercised by integration tests */
   if (ignoreSelectors.length) {
-    // Run a one-shot script in the browser that asks the element whether it
-    // matches any of the configured ignore selectors. The webdriverio
-    // element handle exposes elementId; we pass that to a client-side helper
-    // that resolves it back to the live element via WebDriver's element ref
-    // protocol — using `iframeElement.execute` keeps us within wdio's API.
-    /* istanbul ignore next: iframeElement.execute runs in the browser via WebDriver — only reachable from a live wdio session */
+    // Run a one-shot script in the document that holds the iframe and ask
+    // the element whether it matches any of the configured ignore
+    // selectors. Passing the element as a script argument works on
+    // WebdriverIO 8, 9 and 10, in Classic sessions and in BiDi browsing
+    // contexts (WebdriverIO 8 has no element-scoped execute).
+    /* istanbul ignore next: scope.execute runs in the browser via WebDriver — only reachable from a live wdio session */
     try {
-      matchesIgnoreSelector = await iframeElement.execute(function(selectors) {
+      matchesIgnoreSelector = await scope.execute(function(el, selectors) {
         for (let i = 0; i < selectors.length; i++) {
-          try { if (this.matches(selectors[i])) return true; } catch (e) { /* invalid selector */ }
+          try { if (el.matches(selectors[i])) return true; } catch (e) { /* invalid selector */ }
         }
         return false;
-      }, ignoreSelectors);
+      }, iframeElement, ignoreSelectors);
     } catch (e) {
-      // Older wdio versions or non-Bidi sessions may not support element-context
-      // execute; fall back to false (match the behavior of unsupported drivers).
+      // Drivers that cannot run the check: fall back to false.
       matchesIgnoreSelector = false;
     }
   }
@@ -117,7 +116,8 @@ function hasSwitchToParentFrame(b) {
   return present;
 }
 
-// Switches up one frame in the WebDriver context. WebdriverIO doesn't surface
+// The leave step of the classic frame strategy. Switches up one frame in the
+// WebDriver context. WebdriverIO doesn't surface
 // switchToParentFrame on the high-level Browser object in every version. When
 // the native parent-switch isn't available we fall back to switchFrame(null),
 // which jumps all the way to the top — for callers at depth === 1 that *is*
@@ -148,8 +148,49 @@ async function switchToParent(b, log, depth = 1) {
   return depth === 1;
 }
 
-async function processFrameTree(b, iframeElement, iframeMeta, depth, ancestorUrls, ctx) {
+// A frame strategy moves the capture into a child frame and back:
+//   enter(scope, iframeElement) -> the scope to run execute/$$ on inside
+//                                  the frame
+//   leave(depth)                -> true when the parent scope is usable again
+// The classic strategy switches the whole session into the frame
+// (WebdriverIO 8 and 9, and WebdriverIO 10 Classic sessions). switchToParent
+// is its leave step.
+function classicFrameStrategy(b, log) {
+  return {
+    async enter(scope, iframeElement) {
+      await b.switchFrame(iframeElement);
+      return b;
+    },
+    leave: (depth) => switchToParent(b, log, depth)
+  };
+}
+
+// WebdriverIO 10 removed switchFrame for BiDi sessions. There a frame is a
+// browsing context of its own: frame() returns it, and the session never
+// leaves the top document, so there is nothing to restore.
+const contextFrameStrategy = {
+  enter: (scope, iframeElement) => scope.frame(iframeElement),
+  leave: async () => true
+};
+
+// Pick the strategy by feature, not by version: only a WebdriverIO 10 BiDi
+// session has browsingContexts(). The root scope is the context of the
+// current window; its id equals the window handle in BiDi.
+async function createFrameStrategy(b, log) {
+  if (b.isBidi && typeof b.browsingContexts === 'function') {
+    const handle = await b.getWindowHandle();
+    const contexts = await b.browsingContexts();
+    const root = contexts.find((context) => context.contextId === handle) || contexts[0];
+    return { strategy: contextFrameStrategy, root };
+  }
+  return { strategy: classicFrameStrategy(b, log), root: b };
+}
+
+// `scope` is the parent document: the browser for the classic strategy, a
+// browsing context for the context strategy.
+async function processFrameTree(scope, iframeElement, iframeMeta, depth, ancestorUrls, ctx) {
   const { maxFrameDepth, ignoreSelectors, options, percyDOMScript, log } = ctx;
+  const frames = ctx.frames || classicFrameStrategy(scope, log);
   if (depth > maxFrameDepth) {
     log.debug(`Reached max iframe nesting depth (${maxFrameDepth}); stopping at ${iframeMeta.src}`);
     return [];
@@ -165,13 +206,13 @@ async function processFrameTree(b, iframeElement, iframeMeta, depth, ancestorUrl
   try {
     log.debug(`Processing cross-origin iframe (depth ${depth}): ${iframeMeta.src}`);
 
-    await b.switchFrame(iframeElement);
+    const frameScope = await frames.enter(scope, iframeElement);
     switchedIn = true;
 
-    await b.execute(percyDOMScript);
+    await frameScope.execute(percyDOMScript);
 
     /* istanbul ignore next: no instrumenting injected code */
-    let frameUrl = await b.execute(function() { return document.URL; });
+    let frameUrl = await frameScope.execute(function() { return document.URL; });
 
     // Post-switch filter: failed cross-origin navigations land on
     // about:blank / about:neterror in the iframe's document context. The
@@ -184,7 +225,7 @@ async function processFrameTree(b, iframeElement, iframeMeta, depth, ancestorUrl
     }
 
     /* istanbul ignore next: no instrumenting injected code */
-    let iframeSnapshot = await b.execute(function(opts) {
+    let iframeSnapshot = await frameScope.execute(function(opts) {
       return PercyDOM.serialize(opts);
     }, { ...options, enableJavaScript: true });
 
@@ -203,23 +244,23 @@ async function processFrameTree(b, iframeElement, iframeMeta, depth, ancestorUrl
     /* istanbul ignore next: same fallback in debug log */
     log.debug(`Captured cross-origin iframe (depth ${depth}): ${frameUrl || iframeMeta.src}`);
 
-    /* istanbul ignore next: nested-recursion enumeration — invoked via b.$$ + getIframeMeta which require real WebdriverIO element handles */
+    /* istanbul ignore next: nested-recursion enumeration — invoked via frameScope.$$ + getIframeMeta which require real WebdriverIO element handles */
     if (depth < maxFrameDepth) {
       let currentOrigin = getOrigin(frameUrl || iframeMeta.src);
       let nextAncestors = new Set(ancestorUrls || []);
       nextAncestors.add(iframeMeta.src);
       if (frameUrl) nextAncestors.add(frameUrl);
-      let childElements = await b.$$('iframe');
+      let childElements = await frameScope.$$('iframe');
       for (let child of childElements) {
         let childMeta;
         try {
-          childMeta = await getIframeMeta(child, ignoreSelectors);
+          childMeta = await getIframeMeta(frameScope, child, ignoreSelectors);
         } catch (e) {
           log.debug(`Could not read child iframe attributes: ${e.message}`);
           continue;
         }
         if (shouldSkipIframe(childMeta, currentOrigin, log)) continue;
-        let nested = await processFrameTree(b, child, childMeta, depth + 1, nextAncestors, ctx);
+        let nested = await processFrameTree(frameScope, child, childMeta, depth + 1, nextAncestors, ctx);
         if (nested.length) collected.push(...nested);
       }
     }
@@ -243,7 +284,7 @@ async function processFrameTree(b, iframeElement, iframeMeta, depth, ancestorUrl
   } finally {
     /* istanbul ignore else: switchedIn-false path — fires when switchFrame fails before we set the flag */
     if (switchedIn) {
-      const ok = await switchToParent(b, log, depth);
+      const ok = await frames.leave(depth);
       if (!ok) {
         // Couldn't reliably step up one level. At depth > 1 the outer loop is
         // iterating child element handles in the wrong context — we have to
@@ -278,14 +319,16 @@ async function captureSerializedDOM(b, options, percyDOMScript, log) {
 
   try {
     const ignoreSelectors = resolveIgnoreSelectors(options);
+    const { strategy, root } = await createFrameStrategy(b, log);
     const ctx = {
+      frames: strategy,
       maxFrameDepth: resolveMaxFrameDepth(options),
       ignoreSelectors,
       options,
       percyDOMScript,
       log
     };
-    let iframeElements = await b.$$('iframe');
+    let iframeElements = await root.$$('iframe');
 
     if (iframeElements && iframeElements.length) {
       log.debug(`Found ${iframeElements.length} top-level iframe(s)`);
@@ -293,11 +336,11 @@ async function captureSerializedDOM(b, options, percyDOMScript, log) {
       let pageOrigin = getOrigin(url);
       let corsIframes = [];
 
-      /* istanbul ignore next: top-level iframe iteration depends on real b.$$ + getIframeMeta on element handles */
+      /* istanbul ignore next: top-level iframe iteration depends on real root.$$ + getIframeMeta on element handles */
       for (let iframeElement of iframeElements) {
         let meta;
         try {
-          meta = await getIframeMeta(iframeElement, ignoreSelectors);
+          meta = await getIframeMeta(root, iframeElement, ignoreSelectors);
         } catch (e) {
           log.debug(`Could not read top-level iframe attributes: ${e.message}`);
           continue;
@@ -305,7 +348,7 @@ async function captureSerializedDOM(b, options, percyDOMScript, log) {
         if (shouldSkipIframe(meta, pageOrigin, log)) continue;
         let entries;
         try {
-          entries = await processFrameTree(b, iframeElement, meta, 1, new Set([url]), ctx);
+          entries = await processFrameTree(root, iframeElement, meta, 1, new Set([url]), ctx);
         } catch (error) {
           if (error && error.percyContextLost) {
             log.debug('Aborting further nested CORS capture due to lost frame context');
@@ -415,3 +458,6 @@ module.exports.shouldSkipIframe = shouldSkipIframe;
 module.exports.switchToParent = switchToParent;
 module.exports.processFrameTree = processFrameTree;
 module.exports.captureSerializedDOM = captureSerializedDOM;
+module.exports.classicFrameStrategy = classicFrameStrategy;
+module.exports.contextFrameStrategy = contextFrameStrategy;
+module.exports.createFrameStrategy = createFrameStrategy;

@@ -1,3 +1,4 @@
+const http = require('http');
 const helpers = require('@percy/sdk-utils/test/helpers');
 const utils = require('@percy/sdk-utils');
 const percySnapshot = require('../index.js');
@@ -463,6 +464,92 @@ describe('percySnapshot', () => {
         '[percy] Could not take DOM snapshot "readiness-reject-string"'
       ]));
     });
+  });
+});
+
+describe('cross-origin iframes in a real browser', () => {
+  // The page under test is served by the Percy test server on localhost.
+  // These fixtures are served on 127.0.0.1, so they are cross-origin to it;
+  // the leaf frame of /nested is on localhost again, so it is cross-origin
+  // to its 127.0.0.1 parent.
+  let server, port;
+
+  beforeAll(async () => {
+    server = http.createServer((req, res) => {
+      res.setHeader('Content-Type', 'text/html');
+      if (req.url === '/nested') {
+        res.end('<!doctype html><html><body><p>cors nested</p>' +
+          `<iframe src="http://localhost:${port}/child" data-percy-element-id="e2e-leaf"></iframe>` +
+          '</body></html>');
+      } else {
+        res.end('<!doctype html><html><body><p>cors child</p></body></html>');
+      }
+    });
+    await new Promise((resolve) => server.listen(0, resolve));
+    port = server.address().port;
+  });
+
+  afterAll(async () => {
+    await new Promise((resolve) => server.close(resolve));
+  });
+
+  beforeEach(async () => {
+    await helpers.setupTest();
+    await browser.url(helpers.testSnapshotURL);
+  });
+
+  async function addIframe(src, id) {
+    await browser.execute(async (frameSrc, frameId) => {
+      let iframe = document.createElement('iframe');
+      iframe.src = frameSrc;
+      iframe.setAttribute('data-percy-element-id', frameId);
+      let loaded = new Promise((resolve) => { iframe.onload = resolve; });
+      document.body.appendChild(iframe);
+      await loaded;
+    }, src, id);
+  }
+
+  it('captures a cross-origin iframe', async () => {
+    const requestSpy = spyOn(percySnapshot, 'request').and.callThrough();
+    await addIframe(`http://127.0.0.1:${port}/child`, 'e2e-cors');
+
+    await percySnapshot('E2E cross-origin iframe');
+
+    const { corsIframes } = requestSpy.calls.mostRecent().args[0].domSnapshot;
+    expect(corsIframes.length).toBe(1);
+    expect(corsIframes[0].iframeData.percyElementId).toBe('e2e-cors');
+    expect(corsIframes[0].frameUrl).toBe(`http://127.0.0.1:${port}/child`);
+    expect(corsIframes[0].iframeSnapshot.html).toContain('cors child');
+  });
+
+  it('skips a cross-origin iframe matched by ignoreIframeSelectors', async () => {
+    const requestSpy = spyOn(percySnapshot, 'request').and.callThrough();
+    await addIframe(`http://127.0.0.1:${port}/child`, 'e2e-cors');
+
+    await percySnapshot('E2E ignored iframe', {
+      ignoreIframeSelectors: ['[data-percy-element-id="e2e-cors"]']
+    });
+
+    const { domSnapshot } = requestSpy.calls.mostRecent().args[0];
+    expect(domSnapshot.corsIframes).toBeUndefined();
+  });
+
+  it('captures a nested cross-origin iframe', async () => {
+    const requestSpy = spyOn(percySnapshot, 'request').and.callThrough();
+    await addIframe(`http://127.0.0.1:${port}/nested`, 'e2e-cors');
+
+    await percySnapshot('E2E nested cross-origin iframe');
+
+    const { corsIframes } = requestSpy.calls.mostRecent().args[0].domSnapshot;
+    expect(corsIframes.map((frame) => frame.iframeData.percyElementId)).toEqual(['e2e-cors', 'e2e-leaf']);
+  });
+
+  it('leaves the session on the top document after the capture', async () => {
+    await addIframe(`http://127.0.0.1:${port}/nested`, 'e2e-cors');
+
+    await percySnapshot('E2E restore');
+
+    expect(await browser.execute(() => document.URL)).toBe(helpers.testSnapshotURL);
   });
 });
 
