@@ -13,7 +13,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         with:
-          node-version: 22
+          node-version: 24
       # Install the packed tarball into a clean project and require it, so a
       # file missing from package.json "files" fails here instead of on npm.
       - name: Pack and require in a clean install

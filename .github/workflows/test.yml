@@ -65,16 +65,16 @@ jobs:
       - name: Install dependencies (webdriverio 10, from yarn.lock)
         if: ${{ matrix.wdio == 10 }}
         run: yarn install --frozen-lockfile
-      # The lockfile pins webdriverio 10, which needs Node >= 22.19, so the
-      # older majors skip the engines check while they swap the five packages.
-      - name: Install dependencies (webdriverio ${{ matrix.wdio }})
+      # yarn.lock holds webdriverio 10 only, so the older majors install the
+      # exact versions in .github/wdio-versions.json: every run gets the same
+      # packages. --ignore-engines: the lockfile's v10 packages need Node 22.19.
+      - name: Install dependencies (webdriverio ${{ matrix.wdio }}, pinned)
         if: ${{ matrix.wdio != 10 }}
         env:
           WDIO: ${{ matrix.wdio }}
-        run: >-
+        run: >- # zizmor: ignore[adhoc-packages] exact versions from .github/wdio-versions.json
           yarn add --dev --ignore-engines
-          "webdriverio@^$WDIO" "@wdio/cli@^$WDIO" "@wdio/local-runner@^$WDIO"
-          "@wdio/jasmine-framework@^$WDIO" "@wdio/spec-reporter@^$WDIO"
+          $(node -p "require('./.github/wdio-versions.json')[process.env.WDIO].join(' ')")
       - name: Set up @percy/cli from git
         if: ${{ github.event_name == 'workflow_dispatch' }}
         env:
