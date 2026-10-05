@@ -12,7 +12,7 @@ exports.config = {
     },
     // WDIO_CLASSIC=1 runs the suite in a WebDriver Classic session, so the
     // switchFrame path is tested on webdriverio 9 and 10 (both default to BiDi).
-    ...(process.env.WDIO_CLASSIC ? { 'wdio:enforceWebDriverClassic': true } : {})
+    'wdio:enforceWebDriverClassic': Boolean(process.env.WDIO_CLASSIC)
   }],
 
   onPrepare() {
