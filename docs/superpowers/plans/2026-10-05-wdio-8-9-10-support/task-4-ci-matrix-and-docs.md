@@ -12,7 +12,7 @@ Read [README.md](README.md) (Global Constraints, Review Focus 4–5) first.
 
 **Interfaces:**
 - Consumes: Task 2 (the five dev package names; v10 in `yarn.lock`), Task 3 (end-to-end iframe specs).
-- Produces: CI jobs named `Test (wdio 8)`, `Test (wdio 9)`, `Test (wdio 10, node 22)`, `Test (wdio 10, node 24)`. The `WDIO_MAJOR` environment variable in the test step.
+- Produces: CI jobs named `Test (wdio 8)` (Node 20), `Test (wdio 9)` and `Test (wdio 9, classic)` (Node 22), `Test (wdio 10)` and `Test (wdio 10, classic)` (Node 24). One Node version per major. The classic jobs set `WDIO_CLASSIC=1` (added after the final review). The `WDIO_MAJOR` environment variable in the test step.
 
 - [ ] **Step 1: Add the version spec**
 
@@ -35,15 +35,16 @@ Run: `WDIO_MAJOR=10 yarn test` → PASS. Run: `WDIO_MAJOR=9 yarn test` → FAIL 
 - [ ] **Step 2: Change `test.yml` to a matrix**
 
 ```yaml
-name: Test (wdio ${{ matrix.wdio }}${{ matrix.wdio == 10 && format(', node {0}', matrix.node) || '' }})
+name: Test (wdio ${{ matrix.wdio }}${{ matrix.classic && ', classic' || '' }})
 strategy:
   fail-fast: false
   matrix:
     include:
       - { wdio: 8,  node: 20 }
-      - { wdio: 9,  node: 20 }
-      - { wdio: 10, node: 22 }
+      - { wdio: 9,  node: 22 }
+      - { wdio: 9,  node: 22, classic: true }
       - { wdio: 10, node: 24 }
+      - { wdio: 10, node: 24, classic: true }
 ```
 
 - Add `wdio-${{ matrix.wdio }}` to the cache `key` and `restore-keys`.
