@@ -22,8 +22,20 @@ The impact analysis in [analysis.md](analysis.md) maps each item of the guide to
 | 2 | [task-2-wdio10-toolchain.md](task-2-wdio10-toolchain.md) | The dev toolchain is on WebdriverIO 10, Node 22, Jasmine 6. The peer range is `^8 \|\| ^9 \|\| ^10`. The suite is green on v10. |
 | 3 | [task-3-frame-strategy.md](task-3-frame-strategy.md) | Cross-origin iframe capture works in a v10 BiDi session and still works on v8/v9. |
 | 4 | [task-4-ci-matrix-and-docs.md](task-4-ci-matrix-and-docs.md) | CI runs the suite on v8, v9 and v10. The README shows the support matrix. |
+| 5 | [task-5-typescript-consumer-check.md](task-5-typescript-consumer-check.md) | A TypeScript 6 consumer project type-checks the public types against WebdriverIO 10, in CI. |
+| 6 | [task-6-readme-browsing-context.md](task-6-readme-browsing-context.md) | The README example for a browsing context compiles and works in BiDi and Classic sessions. |
+| 7 | [task-7-e2e-nested-ignore-and-url-root.md](task-7-e2e-nested-ignore-and-url-root.md) | e2e specs pin `ignoreIframeSelectors` on a nested iframe and capture through the result of `browser.url()`. |
 
-Do the tasks in this order. Task 3 needs Task 2: its end-to-end tests fail on v10 only.
+Do the tasks in this order. Task 3 needs Task 2: its end-to-end tests fail on v10 only. Tasks 5–7 come from the second v10 audit (2026-10-05). Task 6 needs Task 5: the consumer check is its failing test.
+
+## Open items (user decision)
+
+From the second v10 audit. Not planned as tasks until the user decides.
+
+- **O1 – First CI run.** Nothing is pushed, so the Linux-only v10 behavior (display server start, the `firefox-nightly` CI step with v8 and v10) is not proved. Needs a push.
+- **O2 – ESLint 10.** ESLint 9 is end of life (2026-08-06). v10 needs ESLint 10 only for `eslint-plugin-wdio`, which this repo does not use.
+- **O3 – Remove `geckodriver`.** `wdio.conf.js` starts a geckodriver in `onPrepare` that WebdriverIO does not use (WebdriverIO starts its own driver since 8.14).
+- **O4 – Release 4.0.0.** Bump the version and write the release note (WebdriverIO 6 and 7 dropped, Node.js below 18 dropped).
 
 ## Decisions (confirmed by the user on 2026-10-05)
 
