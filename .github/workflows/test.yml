@@ -10,6 +10,14 @@ on:
 permissions:
   contents: read
 
+# One run per branch (and so per PR): a new push cancels the run still in
+# progress on the same branch. Runs on master are not cancelled, so every
+# master commit keeps its result. Manual runs are grouped by their
+# @percy/cli branch input, apart from push runs.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}-${{ github.event.inputs.branch }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
 jobs:
   test:
     name: Test (wdio ${{ matrix.wdio }}${{ matrix.classic && ', classic' || '' }})
