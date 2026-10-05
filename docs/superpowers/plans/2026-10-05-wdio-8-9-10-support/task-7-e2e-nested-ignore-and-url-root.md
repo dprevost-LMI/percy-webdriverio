@@ -24,7 +24,8 @@ it('skips a nested cross-origin iframe matched by ignoreIframeSelectors', async 
 
 it('captures through the browsing context that browser.url() returns', async () => {
   // const page = await browser.url(helpers.testSnapshotURL); then addIframe(`http://127.0.0.1:${port}/nested`, 'e2e-cors')
-  // if (!page || typeof page !== 'object') { pending('browser.url() returns no context before webdriverio 10'); return; }
+  // if (!page || typeof page.execute !== 'function') { pending('browser.url() returns a browsing context only in webdriverio 10'); return; }
+  // (Ruling during execution: webdriverio 9 returns the request object in BiDi, so `typeof page === 'object'` is not enough.)
   // percySnapshot(page, 'E2E url root')
   // expect(url).toBe(helpers.testSnapshotURL); expect ids toEqual(['e2e-cors', 'e2e-leaf']);
 });

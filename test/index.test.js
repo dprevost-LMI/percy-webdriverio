@@ -495,6 +495,10 @@ describe('cross-origin iframes in a real browser', () => {
         res.end('<!doctype html><html><body><p>cors nested</p>' +
           `<iframe src="http://localhost:${port}/child" data-percy-element-id="e2e-leaf"></iframe>` +
           '</body></html>');
+      } else if (req.url === '/nested-ignore') {
+        res.end('<!doctype html><html><body><p>cors nested</p>' +
+          `<iframe src="http://localhost:${port}/child" data-percy-element-id="e2e-leaf" class="no-percy"></iframe>` +
+          '</body></html>');
       } else {
         res.end('<!doctype html><html><body><p>cors child</p></body></html>');
       }
@@ -581,6 +585,36 @@ describe('cross-origin iframes in a real browser', () => {
     expect(url).toBe(`http://127.0.0.1:${port}/nested`);
     expect(domSnapshot.html).toContain('cors nested');
     expect(domSnapshot.corsIframes.map((frame) => frame.iframeData.percyElementId)).toEqual(['e2e-leaf']);
+  });
+
+  it('skips a nested cross-origin iframe matched by ignoreIframeSelectors', async () => {
+    // The check for the leaf runs inside the parent frame's scope; the
+    // parent frame itself must still be captured.
+    const requestSpy = spyOn(percySnapshot, 'request').and.callThrough();
+    await addIframe(`http://127.0.0.1:${port}/nested-ignore`, 'e2e-cors');
+
+    await percySnapshot('E2E nested ignored iframe', { ignoreIframeSelectors: ['.no-percy'] });
+
+    const { corsIframes } = requestSpy.calls.mostRecent().args[0].domSnapshot;
+    expect(corsIframes.map((frame) => frame.iframeData.percyElementId)).toEqual(['e2e-cors']);
+  });
+
+  it('captures through the browsing context that browser.url() returns', async () => {
+    const page = await browser.url(helpers.testSnapshotURL);
+    // webdriverio 8 returns nothing and 9 returns the request; only 10
+    // returns a browsing context (BiDi) or a Classic stand-in.
+    if (!page || typeof page.execute !== 'function') {
+      pending('browser.url() returns a browsing context only in webdriverio 10');
+      return;
+    }
+    const requestSpy = spyOn(percySnapshot, 'request').and.callThrough();
+    await addIframe(`http://127.0.0.1:${port}/nested`, 'e2e-cors');
+
+    await percySnapshot(page, 'E2E url() root');
+
+    const { url, domSnapshot } = requestSpy.calls.mostRecent().args[0];
+    expect(url).toBe(helpers.testSnapshotURL);
+    expect(domSnapshot.corsIframes.map((frame) => frame.iframeData.percyElementId)).toEqual(['e2e-cors', 'e2e-leaf']);
   });
 
   it('leaves the session on the top document after the capture', async () => {
