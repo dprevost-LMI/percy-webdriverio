@@ -1,2 +1,5 @@
 node_modules
 .nyc_output
+
+# Local analysis notes for the WebdriverIO 8/9/10 plan
+docs/superpowers/plans/2026-10-05-wdio-8-9-10-support/analysis.md
