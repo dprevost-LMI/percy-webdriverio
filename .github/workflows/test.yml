@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   test:
-    name: Test (wdio ${{ matrix.wdio }}${{ matrix.wdio == 10 && format(', node {0}', matrix.node) || '' }})
+    name: Test (wdio ${{ matrix.wdio }}${{ matrix.wdio == 10 && format(', node {0}', matrix.node) || '' }}${{ matrix.classic && ', classic' || '' }})
     strategy:
       fail-fast: false
       matrix:
@@ -21,6 +21,9 @@ jobs:
           - { wdio: 9, node: 20 }
           - { wdio: 10, node: 22 }
           - { wdio: 10, node: 24 }
+          # webdriverio 9 and 10 default to BiDi; this job covers switchFrame
+          # in a WebDriver Classic session (Safari, many cloud grids).
+          - { wdio: 10, node: 22, classic: true }
     runs-on: ubuntu-latest
     steps:
       - uses: actions-ecosystem/action-regex-match@9e6c4fb3d5e898f505be7a1fb6e7b0a278f6665b # v2.0.2
@@ -84,3 +87,4 @@ jobs:
       - run: yarn test:coverage
         env:
           WDIO_MAJOR: ${{ matrix.wdio }}
+          WDIO_CLASSIC: ${{ matrix.classic && '1' || '' }}

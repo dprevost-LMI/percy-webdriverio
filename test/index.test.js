@@ -523,6 +523,12 @@ describe('cross-origin iframes in a real browser', () => {
     }, src, id);
   }
 
+  it('runs in the session protocol that the CI job asks for', () => {
+    // WDIO_CLASSIC=1 must give a Classic session, or the Classic switchFrame
+    // path is not what the e2e specs below exercise.
+    if (process.env.WDIO_CLASSIC) expect(browser.isBidi).toBe(false);
+  });
+
   it('captures a cross-origin iframe', async () => {
     const requestSpy = spyOn(percySnapshot, 'request').and.callThrough();
     await addIframe(`http://127.0.0.1:${port}/child`, 'e2e-cors');
