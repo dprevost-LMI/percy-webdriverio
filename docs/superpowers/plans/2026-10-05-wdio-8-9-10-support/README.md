@@ -16,17 +16,38 @@ The impact analysis in [analysis.md](analysis.md) maps each item of the guide to
 
 ## Tasks
 
-| # | File | Deliverable |
-|---|------|-------------|
-| 1 | [task-1-readiness-gate-execute.md](task-1-readiness-gate-execute.md) | The readiness gate uses `execute`, not `executeAsync`. |
-| 2 | [task-2-wdio10-toolchain.md](task-2-wdio10-toolchain.md) | The dev toolchain is on WebdriverIO 10, Node 22, Jasmine 6. The peer range is `^8 \|\| ^9 \|\| ^10`. The suite is green on v10. |
-| 3 | [task-3-frame-strategy.md](task-3-frame-strategy.md) | Cross-origin iframe capture works in a v10 BiDi session and still works on v8/v9. |
-| 4 | [task-4-ci-matrix-and-docs.md](task-4-ci-matrix-and-docs.md) | CI runs the suite on v8, v9 and v10. The README shows the support matrix. |
-| 5 | [task-5-typescript-consumer-check.md](task-5-typescript-consumer-check.md) | A TypeScript 6 consumer project type-checks the public types against WebdriverIO 10, in CI. |
-| 6 | [task-6-readme-browsing-context.md](task-6-readme-browsing-context.md) | The README example for a browsing context compiles and works in BiDi and Classic sessions. |
-| 7 | [task-7-e2e-nested-ignore-and-url-root.md](task-7-e2e-nested-ignore-and-url-root.md) | e2e specs pin `ignoreIframeSelectors` on a nested iframe and capture through the result of `browser.url()`. |
+| # | File | Deliverable | Status |
+|---|------|-------------|--------|
+| 1 | [task-1-readiness-gate-execute.md](task-1-readiness-gate-execute.md) | The readiness gate uses `execute`, not `executeAsync`. | Done (`1e8c769`) |
+| 2 | [task-2-wdio10-toolchain.md](task-2-wdio10-toolchain.md) | The dev toolchain is on WebdriverIO 10, Node 22, Jasmine 6. The peer range is `^8 \|\| ^9 \|\| ^10`. The suite is green on v10. | Done (`3433cf5`) |
+| 3 | [task-3-frame-strategy.md](task-3-frame-strategy.md) | Cross-origin iframe capture works in a v10 BiDi session and still works on v8/v9. | Done (`7c5f666`, `e36710f`) |
+| 4 | [task-4-ci-matrix-and-docs.md](task-4-ci-matrix-and-docs.md) | CI runs the suite on v8, v9 and v10. The README shows the support matrix. | Done (`55aceba`, `8060610`) |
+| 5 | [task-5-typescript-consumer-check.md](task-5-typescript-consumer-check.md) | A TypeScript 6 consumer project type-checks the public types against WebdriverIO 10, in CI. | Done (`8b0f7f2`) |
+| 6 | [task-6-readme-browsing-context.md](task-6-readme-browsing-context.md) | The README example for a browsing context compiles and works in BiDi and Classic sessions. | Done (`e38eedf`) |
+| 7 | [task-7-e2e-nested-ignore-and-url-root.md](task-7-e2e-nested-ignore-and-url-root.md) | e2e specs pin `ignoreIframeSelectors` on a nested iframe and capture through the result of `browser.url()`. | Done (`75a4805`) |
 
 Do the tasks in this order. Task 3 needs Task 2: its end-to-end tests fail on v10 only. Tasks 5–7 come from the second v10 audit (2026-10-05). Task 6 needs Task 5: the consumer check is its failing test.
+
+## Changes made outside the tasks
+
+| Change | Why | Commits |
+|--------|-----|---------|
+| WebdriverIO 8 uses `switchToFrame` when `switchFrame` is missing. | v8 has no `switchFrame`; found by the v8 run in Task 4. analysis.md was wrong. | `55aceba`, `2fa771a` |
+| `percySnapshot` accepts a WebdriverIO 10 `BrowsingContext` (type overload included). | Final review: in v10 BiDi, `switchWindow` throws and `percySnapshot(context)` threw `b.call is not a function`. | `d7847b0`, `969367b` |
+| CI runs v9 and v10 also in a WebDriver Classic session (`WDIO_CLASSIC=1`). | Final review: no CI job ran `switchFrame` in a Classic session. | `d0c2d8d`, `c745fb6`, `7f69e35` |
+| One Node version per major: v8 on Node 20, v9 on Node 22, v10 on Node 24. | User request. | `7f69e35` |
+
+### Current CI test matrix
+
+| Job | WebdriverIO | Node.js | Session |
+|-----|-------------|---------|---------|
+| `Test (wdio 8)` | `^8` | 20 | Classic (default) |
+| `Test (wdio 9)` | `^9` | 22 | BiDi (default) |
+| `Test (wdio 9, classic)` | `^9` | 22 | Classic |
+| `Test (wdio 10)` | `^10` | 24 | BiDi (default) |
+| `Test (wdio 10, classic)` | `^10` | 24 | Classic |
+
+Typecheck runs `tsd` on v8, v9 and v10, and the TypeScript 6 consumer check on v10 (Node 22).
 
 ## Open items (user decision)
 

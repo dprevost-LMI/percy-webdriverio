@@ -14,7 +14,7 @@ Read [README.md](README.md) (Global Constraints, Review Focus 4–5) first.
 - Consumes: Task 2 (the five dev package names; v10 in `yarn.lock`), Task 3 (end-to-end iframe specs).
 - Produces: CI jobs named `Test (wdio 8)` (Node 20), `Test (wdio 9)` and `Test (wdio 9, classic)` (Node 22), `Test (wdio 10)` and `Test (wdio 10, classic)` (Node 24). One Node version per major. The classic jobs set `WDIO_CLASSIC=1` (added after the final review). The `WDIO_MAJOR` environment variable in the test step.
 
-- [ ] **Step 1: Add the version spec**
+- [x] **Step 1: Add the version spec**
 
 In `test/index.test.js`, in `describe('percySnapshot')`:
 
@@ -32,7 +32,7 @@ it('reports the installed webdriverio version as environmentInfo', async () => {
 
 Run: `WDIO_MAJOR=10 yarn test` → PASS. Run: `WDIO_MAJOR=9 yarn test` → FAIL on this spec only (proves the guard works).
 
-- [ ] **Step 2: Change `test.yml` to a matrix**
+- [x] **Step 2: Change `test.yml` to a matrix**
 
 ```yaml
 name: Test (wdio ${{ matrix.wdio }}${{ matrix.classic && ', classic' || '' }})
@@ -54,11 +54,11 @@ strategy:
 - Set `env: WDIO_MAJOR: ${{ matrix.wdio }}` on the `yarn test:coverage` step.
 - Keep the Firefox-nightly step, the `workflow_dispatch` branch check and the `@percy/cli` git setup unchanged. Keep `persist-credentials: false`.
 
-- [ ] **Step 3: Change `typecheck.yml` the same way**
+- [x] **Step 3: Change `typecheck.yml` the same way**
 
 Use the matrix `wdio: [8, 9, 10]` with `node: 22`, the same two install steps, and `yarn test:types`. Add `persist-credentials: false` to its checkout.
 
-- [ ] **Step 4: Run each major locally**
+- [x] **Step 4: Run each major locally**
 
 For `N` in `8` and `9`:
 ```bash
@@ -69,23 +69,23 @@ git checkout package.json yarn.lock && yarn install
 Then `WDIO_MAJOR=10 yarn test:coverage && yarn test:types`.
 Expected: PASS on all three, with 100 % coverage. On v8, if a spec fails only because of a v8 API gap, fix `index.js` with feature detection (Global Constraints), not with a version check.
 
-- [ ] **Step 5: Update `README.md`**
+- [x] **Step 5: Update `README.md`**
 
 - Add `## Compatibility` after `## Installation`: a table with `@percy/webdriverio 4.x` → WebdriverIO 8, 9, 10; `3.x` → WebdriverIO 6, 7, 8, 9. Say that WebdriverIO sets the Node.js floor (v10 needs Node.js 22.19.0 or later). Say that cross-origin iframes work in Classic and BiDi sessions.
 - In the standalone example, change `percySnapshot(browser, 'WebdriverIO at DuckDuckGo');` to `await percySnapshot(...)`.
 
-- [ ] **Step 6: Search for v10 leftovers in the whole repository**
+- [x] **Step 6: Search for v10 leftovers in the whole repository**
 
 Run: `git grep -nE "executeAsync|switchToFrame|isW3C|\.ELEMENT\b|jasmineNodeOpts|multiremote|tagExpression|getHTML\((true|false)\)" -- ':!docs' ':!yarn.lock'`
 Expected: only the WebdriverIO 8 fallback in `switchSessionFrame` (`index.js`) and its two unit specs in `test/iframe-helpers.test.js`.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add .github/workflows/test.yml .github/workflows/typecheck.yml test/index.test.js README.md
 git commit -m "ci: test against webdriverio 8, 9 and 10; document compatibility"
 ```
 
-- [ ] **Step 8: Ask the user, then open the PR**
+- [x] **Step 8: Ask the user, then open the PR**
 
 Ask the user before you push. In the PR description, list D1/D2 and the release version (`4.0.0` for D1 as planned). Expected after the push: the four Test jobs, three Typecheck jobs, Lint and Pack are green.

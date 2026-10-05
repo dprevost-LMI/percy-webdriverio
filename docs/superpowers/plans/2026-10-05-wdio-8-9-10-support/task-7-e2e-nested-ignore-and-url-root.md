@@ -9,11 +9,11 @@ Read [README.md](README.md) (Review Focus 3) first. Start this task only after t
 **Files:**
 - Test: `test/index.test.js` (`describe('cross-origin iframes in a real browser')`)
 
-- [ ] **Step 1: Add the fixture route**
+- [x] **Step 1: Add the fixture route**
 
 Add `/nested-ignore` to the test server: like `/nested`, but the leaf iframe also has `class="no-percy"`.
 
-- [ ] **Step 2: Add the specs**
+- [x] **Step 2: Add the specs**
 
 ```js
 it('skips a nested cross-origin iframe matched by ignoreIframeSelectors', async () => {
@@ -31,16 +31,16 @@ it('captures through the browsing context that browser.url() returns', async () 
 });
 ```
 
-- [ ] **Step 3: Prove that the nested-ignore spec can fail**
+- [x] **Step 3: Prove that the nested-ignore spec can fail**
 
 Run once with `ignoreIframeSelectors: []` and see it fail (`['e2e-cors', 'e2e-leaf']`). Put the selector back.
 
-- [ ] **Step 4: Run every CI combination**
+- [x] **Step 4: Run every CI combination**
 
 v8 (Node 20), v9 and v9 Classic (Node 22), v10 and v10 Classic (Node 24), each with `WDIO_MAJOR` (and `WDIO_CLASSIC=1` for Classic) and `yarn test:coverage`.
 Expected: PASS, 100 % coverage. The `browser.url()` spec is pending on v8 and v9.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add test/index.test.js

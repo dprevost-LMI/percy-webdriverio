@@ -15,7 +15,7 @@ Read [README.md](README.md) first.
 **Interfaces:**
 - Consumes: Task 5 (`yarn test:types:consumer`).
 
-- [ ] **Step 1: Put the current README example in the consumer check**
+- [x] **Step 1: Put the current README example in the consumer check**
 
 Add to `types/consumer/runner.ts`, as the README has it:
 ```ts
@@ -23,23 +23,23 @@ const tab = await browser.newWindow('https://example.com', { type: 'tab' });
 await percySnapshot(tab, 'Second tab');
 ```
 
-- [ ] **Step 2: Run it and see it fail**
+- [x] **Step 2: Run it and see it fail**
 
 Run: `yarn test:types:consumer`
 Expected: FAIL with TS2769 on the `percySnapshot(tab, …)` line.
 
-- [ ] **Step 3: Change the README**
+- [x] **Step 3: Change the README**
 
 Replace the paragraph with: in WebdriverIO 10 you can give a browsing context as the first argument; the result of `browser.url()` works in BiDi and Classic sessions (example: `const page = await browser.url('https://example.com'); await percySnapshot(page, 'Example page');`); in a BiDi session the result of `browser.newWindow()` is also a browsing context (a Classic session switches to the new window, so use `browser`).
 
 Replace the Step 1 lines in `types/consumer/runner.ts` with the new README example, exactly as written.
 
-- [ ] **Step 4: Run it and see it pass**
+- [x] **Step 4: Run it and see it pass**
 
 Run: `yarn test:types:consumer`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add README.md types/consumer/runner.ts

@@ -21,7 +21,7 @@ Read [README.md](README.md) (Global Constraints, Review Focus 1–3) first.
   - `processFrameTree(scope, iframeElement, iframeMeta, depth, ancestorUrls, ctx)` — same positions as today; the first argument is now the parent scope. `ctx.frames?: FrameStrategy`; when missing, use `classicFrameStrategy(scope, ctx.log)`, so existing unit specs keep working unchanged.
   - `getIframeMeta(scope, iframeElement, ignoreSelectors)` — internal, not exported.
 
-- [ ] **Step 1: Add the end-to-end fixture and the capture spec**
+- [x] **Step 1: Add the end-to-end fixture and the capture spec**
 
 In `test/index.test.js` add `describe('cross-origin iframes in a real browser')`. In `beforeAll`, start `http.createServer` with `listen(0)` (all interfaces) and keep `port`. Routes:
 - `/child` → `<!doctype html><html><body><p>cors child</p></body></html>`
@@ -44,7 +44,7 @@ it('captures a cross-origin iframe', async () => {
 });
 ```
 
-- [ ] **Step 2: Add the ignore-selector and nested specs**
+- [x] **Step 2: Add the ignore-selector and nested specs**
 
 ```js
 it('skips a cross-origin iframe matched by ignoreIframeSelectors', async () => {
@@ -58,7 +58,7 @@ it('captures a nested cross-origin iframe', async () => {
 });
 ```
 
-- [ ] **Step 3: Add the context-restore spec**
+- [x] **Step 3: Add the context-restore spec**
 
 ```js
 it('leaves the session on the top document after the capture', async () => {
@@ -67,12 +67,12 @@ it('leaves the session on the top document after the capture', async () => {
 });
 ```
 
-- [ ] **Step 4: Run the end-to-end specs on v10 and see them fail**
+- [x] **Step 4: Run the end-to-end specs on v10 and see them fail**
 
 Run: `yarn test`
 Expected: FAIL. `captures a cross-origin iframe` and `captures a nested cross-origin iframe` fail with `Cannot read properties of undefined (reading 'length')` (no `corsIframes`). The other two can pass already.
 
-- [ ] **Step 5: Write the unit specs for `createFrameStrategy`**
+- [x] **Step 5: Write the unit specs for `createFrameStrategy`**
 
 In `test/iframe-helpers.test.js`, `describe('createFrameStrategy')`:
 - `b = { isBidi: false, switchFrame }` → `strategy` is not `contextFrameStrategy`; `root === b`.
@@ -80,7 +80,7 @@ In `test/iframe-helpers.test.js`, `describe('createFrameStrategy')`:
 - `b = { isBidi: true, getWindowHandle: async () => 'ctx-2', browsingContexts: async () => [c1, c2] }` with `c1.contextId = 'ctx-1'`, `c2.contextId = 'ctx-2'` → `strategy === contextFrameStrategy`; `root === c2`.
 - Same, but `getWindowHandle` returns `'other'` → `root === c1`.
 
-- [ ] **Step 6: Write the unit specs for the context path**
+- [x] **Step 6: Write the unit specs for the context path**
 
 In `test/iframe-helpers.test.js`, `describe('processFrameTree with contextFrameStrategy')`. Build plain-object mocks:
 - `leafCtx = { execute: <1st call resolves undefined, 2nd resolves 'https://leaf.example/', 3rd resolves { html: 'leaf' }>, $$: async () => [] }`
@@ -101,12 +101,12 @@ Add one spec where `root.frame` rejects: the result is `[]`, `log.debug` gets `/
 
 Add one `captureSerializedDOM` spec in BiDi mode: `b = { isBidi: true, getWindowHandle, browsingContexts: async () => [root], execute: <serialize → { domSnapshot: {}, url: 'https://page.example/' }>, switchFrame: spy }`, `root.$$` returns `[iframeEl]` with a cross-origin `src` and a `data-percy-element-id`. Expect `domSnapshot.corsIframes.length === 1` and `switchFrame` not called.
 
-- [ ] **Step 7: Run the unit specs and see them fail**
+- [x] **Step 7: Run the unit specs and see them fail**
 
 Run: `yarn test`
 Expected: FAIL with `createFrameStrategy is not a function` / `contextFrameStrategy` undefined.
 
-- [ ] **Step 8: Implement in `index.js`**
+- [x] **Step 8: Implement in `index.js`**
 
 - `createFrameStrategy(b, log)`: if `b.isBidi && typeof b.browsingContexts === 'function'`, get `handle = await b.getWindowHandle()` and `contexts = await b.browsingContexts()`; `root` is the context whose `contextId === handle`, else `contexts[0]`; return the context strategy. Otherwise return `{ strategy: classicFrameStrategy(b, log), root: b }`. (`getWindowHandle()` equals the top-level context id; WebdriverIO 10 uses this itself.)
 - `processFrameTree`: `const frames = ctx.frames || classicFrameStrategy(scope, log)`. Replace `await b.switchFrame(iframeElement)` with `const frameScope = await frames.enter(scope, iframeElement)`. Run the three `execute` calls and `$$('iframe')` on `frameScope`. Recurse with `frameScope`. In `finally`, call `frames.leave(depth)` in place of `switchToParent(b, log, depth)`. Keep all `percyContextLost` logic.
@@ -115,17 +115,17 @@ Expected: FAIL with `createFrameStrategy is not a function` / `contextFrameStrat
 - Export `classicFrameStrategy`, `contextFrameStrategy`, `createFrameStrategy`.
 - Update the comment above `switchToParent` to say that it is the Classic `leave`.
 
-- [ ] **Step 9: Run all specs with coverage**
+- [x] **Step 9: Run all specs with coverage**
 
 Run: `yarn test:coverage`
 Expected: PASS for all specs, including the four end-to-end specs from Steps 1–3 on v10. Coverage 100 %. If a new branch is reachable only in a live browser, cover it with a unit spec; add `/* istanbul ignore */` only with the same reason style as the existing comments.
 
-- [ ] **Step 10: Run the end-to-end specs on v9**
+- [x] **Step 10: Run the end-to-end specs on v9**
 
 Run: `yarn add --dev --ignore-engines webdriverio@^9 @wdio/cli@^9 @wdio/local-runner@^9 @wdio/jasmine-framework@^9 @wdio/spec-reporter@^9 && yarn test; git checkout package.json yarn.lock && yarn install`
 Expected: PASS. (v9 BiDi has no `browsingContexts`, so this proves that the Classic strategy still works there.)
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```bash
 git add index.js test/index.test.js test/iframe-helpers.test.js
