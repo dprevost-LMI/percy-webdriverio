@@ -120,9 +120,14 @@ const percySnapshot = require('@percy/webdriverio');
 
 `percySnapshot(name[, options])`
 
-`percySnapshot(browser, name[, options])` (standalone mode only)
+`percySnapshot(browser, name[, options])` (required in standalone mode)
 
-- `browser` (**required**) - The WebdriverIO browser object
+`percySnapshot(context, name[, options])` (WebdriverIO 10)
+
+- `browser` - The WebdriverIO browser object. Without it, the global `browser` of the testrunner
+  is used.
+- `context` - A WebdriverIO 10 browsing context, for example the result of `browser.url()`. See
+  [Compatibility](#compatibility).
 - `name` (**required**) - The snapshot name; must be unique to each snapshot
 - `options` - [See per-snapshot configuration options](https://www.browserstack.com/docs/percy/take-percy-snapshots/overview#per-snapshot-configuration)
 
