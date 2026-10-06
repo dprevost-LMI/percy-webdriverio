@@ -19,3 +19,8 @@ expectError(percySnapshot(browser, 'Snapshot name', { foo: 'bar' }));
 expectType<Promise<void | { [key: string]: any }>>(percySnapshot(context, 'Snapshot name'));
 expectType<Promise<void | { [key: string]: any }>>(percySnapshot(context, 'Snapshot name', { widths: [1000] }));
 expectError(percySnapshot(context));
+
+// Not a browser or a browsing context (also on WebdriverIO 8 and 9)
+expectError(percySnapshot(42, 'Snapshot name'));
+expectError(percySnapshot({ handle: 'window-1', type: 'tab' }, 'Snapshot name'));
+expectError(percySnapshot('Snapshot name', 'not options'));

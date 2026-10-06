@@ -3,9 +3,13 @@ import { SnapshotOptions } from '@percy/core';
 declare global {
   namespace WebdriverIO {
     // WebdriverIO 10 defines BrowsingContext (for example the result of
-    // browser.url()); this empty declaration merges with it and keeps the
-    // overload below valid on WebdriverIO 8 and 9, which do not define it.
-    interface BrowsingContext {}
+    // browser.url()); this declaration merges with it and keeps the overload
+    // below valid on WebdriverIO 8 and 9, which do not define it. The member
+    // is the same as in WebdriverIO 10, and an empty interface would accept
+    // any value as the first argument on WebdriverIO 8 and 9.
+    interface BrowsingContext {
+      browser: WebdriverIO.Browser;
+    }
   }
 }
 
