@@ -552,7 +552,7 @@ describe('createFrameStrategy', () => {
     };
     const debugLog = { debug: jasmine.createSpy('debug') };
     await createFrameStrategy(b, debugLog);
-    expect(debugLog.debug).not.toHaveBeenCalled();
+    expect(debugLog.debug.calls.count()).toBe(0);
   });
 });
 
