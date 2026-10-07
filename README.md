@@ -12,10 +12,10 @@ $ npm install --save-dev @percy/cli @percy/webdriverio
 ```
 ## Compatibility
 
-| `@percy/webdriverio` | WebdriverIO |
-|----------------------|-------------|
-| 4.x                  | 8, 9, 10    |
-| 3.x                  | 6, 7, 8, 9  |
+| `@percy/webdriverio` | WebdriverIO                |
+|----------------------|----------------------------|
+| 4.x                  | 8 (8.14.0 or later), 9, 10 |
+| 3.x                  | 6, 7, 8, 9                 |
 
 WebdriverIO sets the Node.js version you need. WebdriverIO 10 needs Node.js 22.19.0 or later.
 
