@@ -4,6 +4,10 @@ exports.config = {
   reporters: ['spec'],
   specs: ['./test/*.test.js'],
   logLevel: 'silent',
+  // Firefox runs -headless, so WebdriverIO 10 does not need to start a
+  // display server (Weston or Xvfb) on Linux. WebdriverIO 8 and 9 ignore
+  // this option.
+  displayServerEnabled: false,
   capabilities: [{
     maxInstances: 5,
     browserName: 'firefox',
