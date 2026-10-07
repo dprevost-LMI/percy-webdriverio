@@ -13,19 +13,24 @@ declare global {
   }
 }
 
-export default function percySnapshot(
+declare function percySnapshot(
   browser: WebdriverIO.Browser,
   name: string,
   options?: SnapshotOptions
 ): Promise<void | { [key: string]: any }>;
 
-export default function percySnapshot(
+declare function percySnapshot(
   context: WebdriverIO.BrowsingContext,
   name: string,
   options?: SnapshotOptions
 ): Promise<void | { [key: string]: any }>;
 
-export default function percySnapshot(
+declare function percySnapshot(
   name: string,
   options?: SnapshotOptions
 ): Promise<void | { [key: string]: any }>;
+
+// index.js sets module.exports to the function, so the types use export =.
+// With export default, TypeScript (NodeNext, ESM) expects a default property
+// that does not exist at runtime.
+export = percySnapshot;
